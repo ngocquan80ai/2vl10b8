@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài 8: Ý nghĩa và đơn vị của Gia tốc</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$']],
+                processEscapes: true
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .drag-item { cursor: grab; }
+        .drag-item:active { cursor: grabbing; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; transform: translate(-50%, -10px); }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div id="app" class="max-w-6xl mx-auto p-4 flex flex-col h-screen overflow-hidden relative">
+        
+        <transition name="fade">
+            <div v-if="toast.show" 
+                 class="absolute top-20 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-xl text-white font-bold text-center text-sm"
+                 :class="toast.isError ? 'bg-red-600' : 'bg-green-600'">
+                <span v-html="toast.message"></span>
+            </div>
+        </transition>
+
+        <header class="bg-indigo-900 text-white p-4 rounded-t-lg shadow-md flex justify-between items-center flex-shrink-0">
+            <div>
+                <h1 class="text-xl font-bold uppercase tracking-tight">VẬT LÍ 10 - BÀI 8 (YÊU CẦU 19)</h1>
+                <p class="text-xs opacity-90">Ý nghĩa, đơn vị và mối quan hệ dấu vectơ giữa vận tốc và gia tốc</p>
+            </div>
+            <div class="hidden md:block font-semibold italic text-indigo-300 text-xs">
+                Định lượng sự thay đổi của vận tốc
+            </div>
+        </header>
+
+        <nav class="bg-white shadow-md flex overflow-x-auto no-scrollbar rounded-b-lg mb-4 flex-shrink-0">
+            <button v-for="(tab, index) in tabs" :key="index" 
+                @click="changeTab(index + 1)"
+                class="flex-1 py-3 px-4 font-semibold text-center border-b-4 transition-colors whitespace-nowrap text-xs"
+                :class="activeTab === index + 1 ? 'border-indigo-600 text-indigo-600 bg-indigo-50' : 'border-transparent text-gray-600 hover:bg-gray-100'">
+                {{ tab }}
+            </button>
+        </nav>
+
+        <main class="flex-1 overflow-y-auto bg-white rounded-lg shadow-md p-6 no-scrollbar relative">
+            
+            <div v-show="activeTab === 1" class="h-full flex flex-col">
+                <h2 class="text-lg font-bold text-indigo-800 mb-2 border-b pb-2">🕹️ Hoạt động: Phân loại thuộc tính Kỹ thuật của Gia tốc</h2>
+                <p class="italic text-gray-600 text-xs mb-4">Kéo các thẻ thuộc tính cốt lõi ở kho lưu trữ và thả vào đúng ô phân loại chức năng tương ứng.</p>
+                
+                <div class="p-4 bg-gray-50 rounded-lg min-h-[80px] flex flex-wrap justify-center gap-3 border-2 border-dashed border-gray-300 mb-6 flex-shrink-0"
+                     @dragover.prevent @drop="drop('source')">
+                    <div v-for="item in sourceItems" :key="item.id"
+                         draggable="true" @dragstart="dragStart(item, 'source')"
+                         class="drag-item bg-white border-2 border-indigo-500 text-indigo-900 font-bold px-3 py-1.5 rounded shadow-sm text-xs hover:bg-indigo-50 transition">
+                        {{ item.text }}
+                    </div>
+                    <div v-if="sourceItems.length === 0" class="text-green-600 font-bold italic text-xs self-center">
+                        🎉 Tuyệt vời! Bạn đã nhận diện hoàn hảo các đặc trưng quy chuẩn của gia tốc!
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+                    <div v-for="target in targets" :key="target.id"
+                         class="bg-gray-50 rounded-lg p-4 border-2 border-gray-300 flex flex-col min-h-[160px]"
+                         @dragover.prevent @drop="drop(target.id)">
+                        <h3 class="text-center font-bold text-slate-700 mb-3 text-xs uppercase bg-slate-200 py-1 rounded px-2">{{ target.name }}</h3>
+                        <div class="flex-1 flex flex-col gap-2">
+                            <div v-for="item in target.items" :key="item.id"
+                                 draggable="true" @dragstart="dragStart(item, target.id)"
+                                 class="bg-green-100 border-l-4 border-green-500 shadow-sm p-2 rounded text-[11px] font-medium text-green-900">
+                                🎯 {{ item.text }}
+                            </div>
+                            <div v-if="target.items.length === 0" class="text-gray-400 italic text-[10px] text-center py-10 border-2 border-dashed border-gray-200 rounded">Thả thẻ vào đây...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 2">
+                <h2 class="text-lg font-bold text-indigo-800 mb-4 border-b pb-2">📚 Ý nghĩa vật lý, Đơn vị SI và Bản chất dấu đại số</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                    <div class="space-y-4 text-xs leading-relaxed">
+                        <div class="bg-gray-50 border p-4 rounded-lg shadow-sm">
+                            <h3 class="font-bold text-slate-800 text-sm mb-2">1. Định nghĩa và Đơn vị SI</h3>
+                            <p class="mb-1.5">Gia tốc là một đại lượng vectơ ($\vec{a}$) đặc trưng cho tốc độ biến thiên nhanh hay chậm của vận tốc theo thời gian.</p>
+                            <p class="mb-2">Trong hệ đo lường quốc tế SI, đơn vị của gia tốc là <strong>mét trên giây bình phương ($\text{m/s}^2$)</strong>.</p>
+                            <div class="bg-white p-2.5 rounded border text-center font-bold text-indigo-800 my-2">
+                                Ý nghĩa: $1\text{ m/s}^2 = \frac{1\text{ m/s}}{1\text{ s}}$ (mỗi giây trôi qua, vận tốc biến thiên thêm $1\text{ m/s}$).
+                            </div>
+                        </div>
+                        
+                        <div class="bg-indigo-50 border-l-4 border-indigo-700 p-4 rounded-lg text-indigo-900">
+                            <h3 class="font-bold text-sm mb-2">2. Tiêu chuẩn biện luận tính chất chuyển động</h3>
+                            <p class="mb-1">Tính chất nhanh hay chậm của chuyển động thẳng biến đổi đều phụ thuộc vào tích số giữa gia tốc và vận tốc:</p>
+                            <p class="mb-1">• <strong>Chuyển động nhanh dần đều:</strong> $\vec{a}$ cùng chiều với $\vec{v}$ $\rightarrow$ Giá trị đại số $a$ và $v$ cùng dấu: $a \cdot v > 0$.</p>
+                            <p>• <strong>Chuyển động chậm dần đều:</strong> $\vec{a}$ ngược chiều với $\vec{v}$ $\rightarrow$ Giá trị đại số $a$ và $v$ trái dấu: $a \cdot v < 0$.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-lg border p-4 flex flex-col items-center justify-center min-h-[240px] shadow-sm">
+                        <p class="text-xs font-bold text-gray-500 mb-2">MÔ HÌNH HƯỚNG VECTƠ TRONG KHÔNG GIAN</p>
+                        <svg viewBox="0 0 300 160" class="w-full h-auto">
+                            <text x="20" y="25" font-size="10" font-weight="bold" fill="#1e293b">Nhanh dần đều (a . v > 0)</text>
+                            <line x1="30" y1="45" x2="120" y2="45" stroke="#10b981" stroke-width="3"/>
+                            <path d="M 115 42 L 125 45 L 115 48 Z" fill="#10b981"/>
+                            <text x="135" y="48" font-size="9" font-weight="bold" fill="#10b981">v</text>
+
+                            <line x1="30" y1="65" x2="100" y2="65" stroke="#ef4444" stroke-width="3"/>
+                            <path d="M 95 62 L 105 65 L 95 68 Z" fill="#ef4444"/>
+                            <text x="115" y="68" font-size="9" font-weight="bold" fill="#ef4444">a</text>
+                            <text x="180" y="60" font-size="9" font-style="italic" fill="#475569">-> Hai vectơ cùng hướng</text>
+
+                            <line x1="20" y1="85" x2="280" y2="85" stroke="#e2e8f0" stroke-width="1"/>
+
+                            <text x="20" y="110" font-size="10" font-weight="bold" fill="#1e293b">Chậm dần đều (a . v < 0)</text>
+                            <line x1="30" y1="130" x2="120" y2="130" stroke="#10b981" stroke-width="3"/>
+                            <path d="M 115 127 L 125 130 L 115 133 Z" fill="#10b981"/>
+                            <text x="135" y="133" font-size="9" font-weight="bold" fill="#10b981">v</text>
+
+                            <line x1="100" y1="145" x2="30" y2="145" stroke="#ef4444" stroke-width="3"/>
+                            <path d="M 35 142 L 25 145 L 35 148 Z" fill="#ef4444"/>
+                            <text x="110" y="148" font-size="9" font-weight="bold" fill="#ef4444">a</text>
+                            <text x="180" y="140" font-size="9" font-style="italic" fill="#475569">-> Hai vectơ ngược hướng</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 3" class="h-full flex flex-col">
+                <h2 class="text-xl font-bold text-indigo-800 mb-2 border-b pb-2">🔬 Phòng thí nghiệm Khảo sát hướng Vectơ Gia tốc và Vận tốc</h2>
+                
+                <div class="bg-gray-800 text-white p-4 rounded-lg mb-4 flex flex-col md:flex-row gap-4 flex-shrink-0 items-center justify-between">
+                    <div class="flex-1 w-full grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <button @click="setSimState(1, 2)" class="p-2 text-xs font-bold rounded shadow transition" :class="simStateId === 1 ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'">
+                            1. Tiến + Tăng tốc
+                        </button>
+                        <button @click="setSimState(1, -2)" class="p-2 text-xs font-bold rounded shadow transition" :class="simStateId === 2 ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'">
+                            2. Tiến + Giảm tốc
+                        </button>
+                        <button @click="setSimState(-1, -2)" class="p-2 text-xs font-bold rounded shadow transition" :class="simStateId === 3 ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'">
+                            3. Lùi + Tăng tốc
+                        </button>
+                        <button @click="setSimState(-1, 2)" class="p-2 text-xs font-bold rounded shadow transition" :class="simStateId === 4 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'">
+                            4. Lùi + Giảm tốc
+                        </button>
+                    </div>
+
+                    <div class="w-full md:w-5/12 bg-slate-900 border border-slate-700 p-3 rounded flex justify-between text-xs font-mono">
+                        <div>
+                            <p>Vận tốc v: <span class="font-bold text-green-400">{{ simV }} m/s</span></p>
+                            <p>Gia tốc a: <span class="font-bold text-red-400">{{ simA }} m/s²</span></p>
+                        </div>
+                        <div class="text-right border-l border-slate-700 pl-3">
+                            <p>Tích số a . v: <span class="font-bold" :class="simV * simA > 0 ? 'text-green-400' : 'text-orange-400'">{{ simV * simA }}</span></p>
+                            <p class="text-[10px] uppercase font-bold text-white mt-1">
+                                Chuyển động: <span :class="simV * simA > 0 ? 'text-green-400' : 'text-orange-400'">{{ simV * simA > 0 ? 'Nhanh dần' : 'Chậm dần' }}</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 bg-slate-950 border border-slate-800 rounded-lg p-6 flex flex-col justify-between relative shadow-inner">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Mô phỏng hướng mũi tên động lực học</span>
+                    
+                    <div class="w-full h-32 relative bg-slate-900 rounded border border-slate-800 flex items-center shadow-lg">
+                        <div class="absolute left-1/2 bottom-0 h-full w-0.5 bg-slate-700 opacity-30"></div>
+                        <span class="absolute left-[48%] bottom-1 text-[9px] text-slate-500 font-bold">Mốc tọa độ O</span>
+
+                        <div class="absolute transition-all duration-300" :style="{ left: carPosPercent + '%' }">
+                            <div class="relative flex flex-col id-car-body">
+                                <svg width="180" height="40" viewBox="0 0 180 40" class="absolute -top-12 -left-16 overflow-visible">
+                                    <g v-if="simV !== 0">
+                                        <line x1="90" y1="12" :x2="90 + simV * 15" y2="12" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+                                        <polygon :points="getArrowPoints(90, 12, simV, '#10b981')" fill="#10b981"/>
+                                        <text :x="90 + simV * 15 + (simV > 0 ? 5 : -15)" y="15" fill="#10b981" font-size="10" font-weight="bold">v</text>
+                                    </g>
+
+                                    <g v-if="simA !== 0">
+                                        <line x1="90" y1="28" :x2="90 + simA * 15" y2="28" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+                                        <polygon :points="getArrowPoints(90, 28, simA, '#ef4444')" fill="#ef4444"/>
+                                        <text :x="90 + simA * 15 + (simA > 0 ? 5 : -15)" y="31" fill="#ef4444" font-size="10" font-weight="bold">a</text>
+                                    </g>
+                                </svg>
+
+                                <div class="w-14 h-7 bg-indigo-600 rounded shadow-md relative">
+                                    <div class="w-3 h-2 bg-sky-200 absolute top-1 right-1 rounded-xs"></div>
+                                    <div class="w-3 h-2 bg-sky-200 absolute top-1 left-1 rounded-xs"></div>
+                                    <div class="w-3 h-3 bg-black rounded-full absolute -bottom-1.5 left-1.5 border border-white"></div>
+                                    <div class="w-3 h-3 bg-black rounded-full absolute -bottom-1.5 right-1.5 border border-white"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 p-2.5 rounded text-[11px] text-slate-400 leading-relaxed mt-2 shadow-sm">
+                        🚨 <strong>Kết luận sư phạm then chốt:</strong> Hãy quan sát kỹ **Trạng thái số 3 (Lùi + Tăng tốc)**. Xe chạy giật lùi về phía bên trái ($v = -1\text{ m/s}$), gia tốc mang giá trị âm ($a = -2\text{ m/s}^2$). Dù gia tốc âm nhưng xe vẫn đang **chạy nhanh dần đều** vì hai mũi tên cùng hướng về bên trái ($a \cdot v > 0$). Điều này triệt tiêu hoàn toàn quan niệm sai lầm cho rằng cứ hễ gia tốc âm là chuyển động chậm dần!
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 4">
+                <h2 class="text-xl font-bold text-indigo-800 mb-4 border-b pb-2">📝 Trắc nghiệm Kiểm tra tư duy Định tính đại lượng Gia tốc</h2>
+                
+                <div class="space-y-6">
+                    <div v-for="(q, qIndex) in questions" :key="q.id" class="bg-gray-50 p-5 rounded-lg border border-gray-200 shadow-sm">
+                        <p class="font-bold text-gray-800 mb-3 text-sm">Câu {{ qIndex + 1 }}: <span v-html="q.text"></span></p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                            <button v-for="(opt, oIndex) in q.options" :key="oIndex"
+                                @click="selectOption(q.id, oIndex)"
+                                class="text-left px-4 py-3 border rounded-md transition-all duration-200 text-xs hover:bg-indigo-50"
+                                :class="getOptionClass(q, oIndex)">
+                                <span class="font-bold mr-2">{{ String.fromCharCode(65 + oIndex) }}.</span>
+                                <span v-html="opt.text"></span>
+                            </button>
+                        </div>
+                        
+                        <div v-if="q.selected !== null" 
+                             class="mt-3 p-4 rounded-md text-xs border font-medium leading-relaxed"
+                             :class="q.options[q.selected].isCorrect ? 'bg-green-100 border-green-400 text-green-800' : 'bg-red-100 border-red-400 text-red-900'">
+                            💡 <strong>Phân tích kĩ thuật:</strong> <span v-html="q.options[q.selected].feedback"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const tabs = ['1. Khởi động', '2. Lý thuyết', '3. Mô phỏng', '4. Trắc nghiệm'];
+                const activeTab = ref(1);
+
+                const triggerMathJax = () => {
+                    nextTick(() => {
+                        try {
+                            if (window.MathJax && window.MathJax.typesetPromise) {
+                                window.MathJax.typesetPromise().catch(e => console.error(e));
+                            }
+                        } catch (e) { console.error(e); }
+                    });
+                };
+
+                const changeTab = (tabIndex) => {
+                    activeTab.value = tabIndex;
+                    triggerMathJax();
+                };
+
+                // --- TAB 1: KÉO THẢ SỬ DỤNG UNICODE TOÀN DIỆN CHỐNG LỖI HIỂN THỊ ---
+                const toast = ref({ show: false, message: '', isError: false });
+                let toastTimer = null;
+
+                const showToast = (msg, isError) => {
+                    toast.value = { show: true, message: msg, isError };
+                    if (toastTimer) clearTimeout(toastTimer);
+                    toastTimer = setTimeout(() => { toast.value.show = false; }, 2000);
+                };
+
+                const sourceItems = ref([
+                    { id: 1, text: 'Kí hiệu toán học là vectơ a', targetId: 'box1' },
+                    { id: 2, text: 'Đại lượng vectơ đặc trưng cho sự thay đổi nhanh hay chậm của vận tốc', targetId: 'box1' },
+                    { id: 3, text: 'mét trên giây bình phương (m/s²)', targetId: 'box2' },
+                    { id: 4, text: 'Quy chuẩn SI: (m/s)/s', targetId: 'box2' },
+                    { text: 'Chuyển động thẳng nhanh dần đều khi tích số a . v > 0', targetId: 'box3' },
+                    { text: 'Chuyển động thẳng chậm dần đều khi tích số a . v < 0', targetId: 'box3' }
+                ].sort(() => Math.random() - 0.5));
+
+                const targets = ref([
+                    { id: 'box1', name: 'Định nghĩa & Kí hiệu', items: [] },
+                    { id: 'box2', name: 'Đơn vị đo lường', items: [] },
+                    { id: 'box3', name: 'Biện luận tính chất', items: [] }
+                ]);
+
+                const draggedItem = ref(null);
+                const dragStart = (item, source) => { draggedItem.value = { item, source }; };
+                
+                const drop = (targetId) => {
+                    if (!draggedItem.value) return;
+                    const { item, source } = draggedItem.value;
+                    if (targetId === source) return;
+
+                    if (targetId !== 'source' && targetId !== item.targetId) {
+                        showToast('❌ Xếp sai rồi! Hãy đối chiếu kỹ định nghĩa, đơn vị và quy tắc xét dấu tích số a . v.', true);
+                        draggedItem.value = null; return;
+                    }
+
+                    showToast('✅ Quá chuẩn xác! Thuộc tính được phân loại hoàn hảo.', false);
+                    if (source === 'source') sourceItems.value = sourceItems.value.filter(i => i.id !== item.id);
+                    if (targetId !== 'source') targets.value.find(t => t.id === targetId).items.push(item);
+                    draggedItem.value = null;
+                };
+
+                // --- TAB 3: MÔ PHỎNG PHÒNG THÍ NGHIỆM VECTƠ ĐỘNG ---
+                const simStateId = ref(1);
+                const simV = ref(1.5);
+                const simA = ref(2);
+                const carPosPercent = ref(45);
+
+                const setSimState = (vSign, aSign) => {
+                    simV.value = vSign * 1.5;
+                    simA.value = aSign;
+                    
+                    if (vSign > 0 && aSign > 0) { simStateId.value = 1; carPosPercent.value = 65; }
+                    if (vSign > 0 && aSign < 0) { simStateId.value = 2; carPosPercent.value = 55; }
+                    if (vSign < 0 && aSign < 0) { simStateId.value = 3; carPosPercent.value = 25; }
+                    if (vSign < 0 && aSign > 0) { simStateId.value = 4; carPosPercent.value = 35; }
+                };
+
+                // Hàm nội suy tọa độ đỉnh tam giác mũi tên hướng vectơ
+                const getArrowPoints = (startX, y, val, color) => {
+                    const length = val * 15;
+                    const endX = startX + length;
+                    if (val > 0) {
+                        return `${endX-6},${y-4} ${endX+2},${y} ${endX-6},${y+4}`;
+                    } else {
+                        return `${endX+6},${y-4} ${endX-2},${y} ${endX+6},${y+4}`;
+                    }
+                };
+
+                // --- TAB 4: TRẮC NGHIỆM CHUẨN HÓA 4 ĐÁP ÁN ---
+                const questions = ref([
+                    {
+                        id: 1,
+                        text: 'Đại lượng vật lý nào sau đây đặc trưng cho tốc độ biến thiên nhanh hay chậm của vận tốc theo thời gian?',
+                        options: [
+                            { text: 'Tốc độ trung bình.', isCorrect: false, feedback: 'Sai: Tốc độ trung bình đặc trưng cho mức độ nhanh chậm của chuyển động trên một quãng đường.' },
+                            { text: 'Độ dịch chuyển tổng hợp.', isCorrect: false, feedback: 'Sai: Đại lượng này đặc trưng cho sự thay đổi vị trí điểm đầu và điểm cuối.' },
+                            { text: 'Gia tốc đại số.', isCorrect: true, feedback: 'Chính xác: Theo định nghĩa, gia tốc là đại lượng đo lường tốc độ thay đổi của vận tốc theo thời gian.' },
+                            { text: 'Quãng đường đi được.', isCorrect: false, feedback: 'Sai: Đây là một đại lượng vô hướng đơn thuần.' }
+                        ], selected: null
+                    },
+                    {
+                        id: 2,
+                        text: 'Ý nghĩa vật lý chính xác của việc một vật có giá trị gia tốc không đổi $a = -2~m/s^2$ trong hệ đo lường SI là gì?',
+                        options: [
+                            { text: 'Cứ sau mỗi giây, vật lại di chuyển lùi lại được một quãng đường bằng 2 mét.', isCorrect: false, feedback: 'Bẫy quãng đường: Gia tốc không đo lường trực tiếp sự thay đổi quãng đường.' },
+                            { text: 'Cứ sau mỗi giây trôi qua, vận tốc tức thời của vật lại biến thiên giảm đi một lượng bằng $2~m/s$.', isCorrect: true, feedback: 'Tuyệt vời: Gia tốc bằng $-2~m/s^2$ có nghĩa là độ biến thiên vận tốc trong mỗi 1 giây trôi qua là $-2~m/s$.' },
+                            { text: 'Vật chuyển động thẳng đều với vận tốc cố định bằng $-2~m/s$.', isCorrect: false, feedback: 'Bẫy chuyển động thẳng đều: Khi chuyển động thẳng đều, gia tốc bắt buộc phải bằng không.' },
+                            { text: 'Sau thời gian 2 giây vật sẽ dừng lại hoàn toàn.', isCorrect: false, feedback: 'Sai: Thời điểm dừng phụ thuộc vào vận tốc ban đầu của vật.' }
+                        ], selected: null
+                    },
+                    {
+                        id: 3,
+                        text: 'Một vật chuyển động thẳng dọc theo trục tọa độ có giá trị vận tốc tức thời $v = -4~m/s$ và gia tốc đại số $a = -1,5~m/s^2$. Trạng thái động học của vật lúc này là:',
+                        options: [
+                            { text: 'Chuyển động thẳng chậm dần đều.', isCorrect: false, feedback: 'Bẫy dấu âm: Bạn bị lừa vì thấy hai giá trị đều âm. Thực chất tích số của chúng dương nên vật phải chạy nhanh dần.' },
+                            { text: 'Chuyển động thẳng nhanh dần đều.', isCorrect: true, feedback: 'Chính xác: Ta có tích số xét dấu: $a \\cdot v = (-1,5) \\cdot (-4) = +6 > 0$. Khi gia tốc và vận tốc cùng dấu (hai vectơ cùng chiều trong không gian), vật chuyển động nhanh dần đều.' },
+                            { text: 'Vật đang đứng yên tại tọa độ âm.', isCorrect: false, feedback: 'Sai: Vận tốc khác không nên vật đang di chuyển.' },
+                            { text: 'Chuyển động thẳng đều ngược chiều dương.', isCorrect: false, feedback: 'Sai: Gia tốc khác không nên vận tốc đang biến đổi liên tục.' }
+                        ], selected: null
+                    },
+                    {
+                        id: 4,
+                        text: 'Trong chuyển động thẳng chậm dần đều, mối quan hệ về hướng giữa vectơ gia tốc $\\vec{a}$ và vectơ vận tốc $\\vec{v}$ tuân theo quy luật nào?',
+                        options: [
+                            { text: 'Hai vectơ luôn luôn song song và cùng hướng với nhau.', isCorrect: false, feedback: 'Bẫy: Cùng hướng là đặc trưng của chuyển động thẳng nhanh dần đều.' },
+                            { text: 'Hai vectơ luôn luôn vuông góc với nhau.', isCorrect: false, feedback: 'Sai: Chuyển động thẳng thì các vectơ luôn nằm trên cùng một đường thẳng chặng chạy.' },
+                            { text: 'Hai vectơ luôn luôn song song và ngược hướng với nhau.', isCorrect: true, feedback: 'Đúng: Chuyển động chậm dần đều đặc trưng bởi việc vectơ gia tốc $\\vec{a}$ quay ngược hướng 180 độ so với vectơ vận tốc $\\vec{v}$ để cản trở chuyển động ($a \\cdot v < 0$).' },
+                            { text: 'Hướng của hai vectơ hoàn toàn độc lập và không có mối quan hệ.', isCorrect: false, feedback: 'Sai bản chất động học lý thuyết.' }
+                        ], selected: null
+                    }
+                ]);
+
+                const selectOption = (qId, optIdx) => {
+                    const q = questions.value.find(q => q.id === qId);
+                    if (q.selected === null) {
+                        q.selected = optIdx;
+                        triggerMathJax();
+                    }
+                };
+
+                const getOptionClass = (q, oIndex) => {
+                    if (q.selected === null) return 'bg-white border-gray-300';
+                    if (q.selected === oIndex) return q.options[oIndex].isCorrect ? 'bg-green-600 text-white border-green-700' : 'bg-red-500 text-white border-red-600';
+                    if (q.options[oIndex].isCorrect) return 'bg-green-100 border-green-500 text-green-900 font-bold'; 
+                    return 'bg-gray-100 border-gray-200 opacity-60'; 
+                };
+
+                onMounted(() => { 
+                    triggerMathJax(); 
+                });
+
+                return {
+                    tabs, activeTab, changeTab, toast, sourceItems, targets, dragStart, drop,
+                    simStateId, simV, simA, carPosPercent, setSimState, getArrowPoints,
+                    questions, selectOption, getOptionClass
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
